@@ -19,13 +19,40 @@ const buf104_conect_res  = Buffer.from([0x68,0x04,0x83,0x00, 0x00, 0x00]);
 const buf104_confirm     = Buffer.from([0x68,0x04,0x01,0x00, 0x00, 0x00]);
 const buf104_confirm_res = Buffer.from([0x68,0x04,0x01,0x00, 0x00, 0x00]);
 var data_num =0;
-var data_sendnum =0;
+var data_sendnum =0; //
 var data_recenum =0;
 var i_flag = false;
 
 var buf104_conect_data = Buffer.from([0x68,0x04,0x83,0x00, 0x00, 0x00,
   0x09,0x01,0x01, 0x00, 0x01,0x00,0x01,0x40,0x00, 0x00, 0x01,0x00]);
-
+  var ByteToHexStr = module.exports.ByteToHexStr = function (byte) {
+    if (byte < 0 || byte > 255) {
+      return;
+    }
+    var hexstr = "";
+    var temp = [];
+    temp[0] = byte >> 4 & 0x0F;
+    temp[1] = byte & 0x0F;
+    for (var i = 0; i < temp.length; i++) {
+      if (temp[i] >= 10) {
+        hexstr += String.fromCharCode(temp[i] + 87);
+      } else {
+        hexstr += String.fromCharCode(temp[i] + 48);
+      }
+    }
+    return hexstr;
+  }
+  
+  var BufferToHexStr = module.exports.BufferToHexStr = function (buffer) {
+    if (!Buffer.isBuffer(buffer)) {
+      return;
+    }
+    var hexstr = "<Buffer";
+    for (var i = 0; i < buffer.length; i++) {
+      hexstr += " " + ByteToHexStr(buffer[i]);
+    }
+    return hexstr + ">";
+  }
 client.setEncoding('utf8');
 //连接到服务端
 function client_start(){
@@ -37,20 +64,21 @@ function client_start(){
 }
 function client_send_u(buf104){
   client.write(buf104);
-  console.log('send data:'+ date.toLocaleString( ));
+  console.log('send data: U'+ new Date().toLocaleString( ));
   console.log( buf104);
 }
 function client_send_s(buf104){
   buf104[4] = data_recenum << 1;
   client.write(buf104);
-  console.log('send data:'+ date.toLocaleString( ));
+  console.log('send data: S '+ new Date().toLocaleString( ));
   console.log( buf104);
 }
 
 client.on('data',function(data){
-
-  buf_socket = Buffer.from(data,'utf8');
-  console.log('recv data:' + date.toLocaleString( ));  
+  console.log(data.length);console.log(data[1]);
+  // console.log(data.isBuffer);console.log(BufferToHexStr(data));
+  buf_socket = Buffer.from(data);
+  console.log('recv data:' + new Date().toLocaleString( ));  
   console.log( buf_socket);
   // console.log( buf_socket[2]);
   // console.log( (buf_socket[2]&0x03));
@@ -68,7 +96,10 @@ client.on('data',function(data){
     }
     // else  if(buf_socket[2] == 0x33){
     //   client_send(buf104_conect);      
-    // }
+    // }    
+    else {
+      client_send_s(buf104_confirm);     
+    }
     // setTimeout(function() {
     //   console.log("等待超时……");
     // }, 1000);
@@ -81,10 +112,13 @@ client.on('data',function(data){
     console.log( 'I');
     data_recenum++;
      console.log (client.connecting);
-    if((data_recenum % 10) == 0){
+    // if((data_recenum % 10) == 0){
       client_send_s(buf104_confirm);
-      // console.log (data_recenum % 10);
-    }
+    //   // console.log (data_recenum % 10);
+    // }
+  }
+  else{
+    client_send_u(buf104_conect_res);
   }
 
 

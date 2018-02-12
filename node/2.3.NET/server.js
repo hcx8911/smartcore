@@ -14,12 +14,13 @@ const buf104_start_res  = Buffer.from([0x68,0x04,0x0B,0x00, 0x00, 0x00]);
 const buf104_conect     = Buffer.from([0x68,0x04,0x43,0x00, 0x00, 0x00]);
 const buf104_conect_res = Buffer.from([0x68,0x04,0x83,0x00, 0x00, 0x00]);
 
-var data_sendnum =0;
-var data_recenum =0;
+var data_sendnum =0;//104发送报文次数
+var data_recenum =0;//104接收报文次数
 var i_flag = false;
 
 var buf104_data = Buffer.from([0x68,0x04,0x83,0x00, 0x00, 0x00,
   0x09,0x01,0x01, 0x00, 0x01,0x00,0x01,0x40,0x00, 0x00, 0x01,0x00]);
+//104数据报文示范
 
 var date = new Date();
 var timeout = 20000;//超时
@@ -35,12 +36,12 @@ var server = net.createServer(function(socket){
 //    console.log('连接超时');
 //    socket.end();
 //  });
-setInterval( function(){
+var interval = setInterval( function(){
   if(i_flag){
       socket_send_i(buf104_data);
   }
 } , 1000);
-
+// clearInterval(interval);
  
 //发送 I格式 数据
 function socket_send_i(buf104){
@@ -48,21 +49,21 @@ function socket_send_i(buf104){
   buf104[4] = data_recenum <<1;
   socket.write(buf104);
   data_sendnum++;
-  console.log('send data:'+ date.toLocaleString( ));
+  console.log('send data:'+ new Date().toLocaleString( ));
   console.log( buf104);
 }
  //发送 s格式 数据
  function socket_send_s(buf104){
   buf104[4] = data_recenum << 1;
   socket.write(buf104);
-  console.log('send data:'+ date.toLocaleString( ));
+  console.log('send data:'+ new Date().toLocaleString( ));
   console.log( buf104);
 }
 
  //发送 U格式 数据
 function socket_send_u(buf104){
   socket.write(buf104);
-  console.log('send data:'+ date.toLocaleString( ));
+  console.log('send data:'+ new Date().toLocaleString( ));
   console.log( buf104);
 }
 
@@ -72,11 +73,12 @@ function socket_send_u(buf104){
     
     data_recenum ++;
     buf_socket = Buffer.from(data,'utf8');
-    console.log('recv data:' + date.toLocaleString( ));
+    console.log('recv data:' + new Date().toLocaleString( ));
     console.log(buf_socket);
   
-    if ((buf_socket[2]&&0x03) == 3) {
-     i_flag = true;
+    if ((buf_socket[2]&0x03) == 3) {
+      i_flag = true;
+      console.log( 'U');
       if(buf_socket[2] == 0x07){
         socket_send_u(buf104_start_res);
       }
@@ -94,25 +96,33 @@ function socket_send_u(buf104){
       // }, 1000);
   
     }
-    else if ((buf_socket[2]&&0x03) == 1) {
+    else if ((buf_socket[2]&0x03) == 1) {
       i_flag = true;
+      console.log( 'S');
+      // setTimeout(function() {
+      //   console.log("等待……");
+      //   socket_send_i(buf104_data);
+      // }, 1000);
+      
     }
     else  {
 
-  
+      socket_send_i(buf104_data);
     }
 
   });
   //数据错误事件
   socket.on('error',function(exception){
     i_flag = false;
+    clearInterval(interval);
     console.log('socket error:' + exception);
     socket.end();
 
   });
   //客户端关闭事件
   socket.on('close',function(data){
-    i_flag = false;
+    i_flag = false;  
+    clearInterval(interval);
     console.log('close: ' +
       socket.remoteAddress + ' ' + socket.remotePort);
   });
